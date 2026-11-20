@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VideoShare - JSON Generator & GitHub Auto Sync</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Default details arrow hide & smooth rotate */
+    details > summary {
+      list-style: none;
+    }
+    details > summary::-webkit-details-marker {
+      display: none;
+    }
+    details[open] .chevron-icon {
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body class="bg-[#0D0D11] text-slate-100 font-sans min-h-screen p-4 sm:p-6">
+
+  <div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-6 border-b border-[#252533]">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-red-500 flex items-center justify-center text-lg">
+          🦊
+        </div>
+        <div>
+          <h1 class="text-lg font-black tracking-tight">
+            <span class="text-[#FF334B]">VIDEO</span>SHARE <span class="text-xs font-semibold text-gray-400">JSON Generator + GitHub Sync</span>
+          </h1>
+          <p class="text-xs text-gray-400">ফর্ম পূরণ করে বা পুরনো JSON এডিট করে সরাসরি GitHub-এ videos.json আপডেট করুন</p>
+        </div>
+      </div>
+      <span id="total-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-[#FF334B]/20 text-[#FF334B]">
+        0 Videos
+      </span>
+    </div>
+
+    <!-- GitHub Config Dropdown Box (Hidden by default) -->
+    <details class="bg-[#16161E] border border-[#252533] rounded-2xl mb-6 overflow-hidden group">
+      <summary class="flex items-center justify-between p-4 cursor-pointer select-none hover:bg-[#1C1C26] transition">
+        <div class="flex items-center space-x-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-400">⚙️ GitHub Auto-Update Settings</h2>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            Configured
+          </span>
+        </div>
+
+        <div class="flex items-center space-x-2.5">
+          <button type="button" onclick="event.preventDefault(); pullFromGitHub();"
+            class="px-3 py-1 rounded-lg bg-[#252533] hover:bg-[#323244] text-[11px] font-semibold text-emerald-300 transition">
+            🔄 Pull Existing videos.json
+          </button>
+          <span class="chevron-icon text-gray-400 text-xs transition-transform duration-200">▼</span>
+        </div>
+      </summary>
+
+      <div class="p-4 pt-3 border-t border-[#252533]/70">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="block text-gray-400 mb-1">GitHub Username</label>
+            <input id="gh-owner" type="text" value="See-some-hot-thing"
+              class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-gray-400 mb-1">Repository Name</label>
+            <input id="gh-repo" type="text" value="-xxx---"
+              class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-gray-400 mb-1">File Path in Repo</label>
+            <input id="gh-path" type="text" value="videos.json"
+              class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-gray-400 mb-1">GitHub Token (Contents R/W)</label>
+            <input id="gh-token" type="password" value="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"
+              class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none font-mono" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mt-3 pt-2 border-t border-[#252533]/70 text-[11px]">
+          <span id="gh-status" class="text-gray-400">Repo তথ্য সেট করা আছে। চাইলে Pull বা সরাসরি Add/Edit করে Push করুন।</span>
+          <button type="button" onclick="saveGhConfig()"
+            class="px-3 py-1 rounded-lg bg-[#FF334B]/20 hover:bg-[#FF334B]/30 text-[#FF334B] font-semibold transition">
+            💾 Save Settings
+          </button>
+        </div>
+      </div>
+    </details>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left: Form -->
+      <div id="form-card" class="bg-[#16161E] border border-[#252533] rounded-2xl p-5 transition">
+        <div class="flex items-center justify-between mb-4">
+          <h2 id="form-heading" class="text-sm font-bold text-white">নতুন ভিডিওর তথ্য দিন</h2>
+          <span id="edit-badge" class="hidden text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            ✏️ Editing Mode
+          </span>
+        </div>
+
+        <form id="video-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5 text-xs">
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">Embed Code বা Video Link *</label>
+            <textarea id="embed-input" oninput="validateEmbed(this.value)" rows="3" required
+              placeholder='<iframe src="https://player.abyssplayer.com/..." ...></iframe> অথবা https://youtube.com/watch?v=...'
+              class="w-full bg-[#0D0D11] text-white rounded-xl p-2.5 border border-[#252533] focus:border-[#FF334B] focus:outline-none font-mono text-[11px]"></textarea>
+            <p id="embed-msg" class="text-[11px] text-gray-400 mt-1">যেকোনো iframe কোড বা YouTube/Embed লিংক পেস্ট করুন।</p>
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">Video Title *</label>
+            <input id="title-input" type="text" required placeholder="যেমন: Epic Sci-Fi Movie"
+              class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-gray-300 font-semibold mb-1">Channel / Creator</label>
+              <input id="creator-input" type="text" value="My Channel"
+                class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-gray-300 font-semibold mb-1">Category</label>
+              <select id="category-input"
+                class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none">
+                <option value="Animation">Animation</option>
+                <option value="3D">3D</option>
+                <option value="Sci-Fi">Sci-Fi</option>
+                <option value="Gaming">Gaming</option>
+                <option value="Movies">Movies</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-gray-300 font-semibold mb-1">Duration</label>
+              <input id="duration-input" type="text" placeholder="10:25" value="HD"
+                class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-gray-300 font-semibold mb-1">Views</label>
+              <input id="views-input" type="text" value="1.2K"
+                class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-gray-300 font-semibold mb-1">Likes</label>
+              <input id="likes-input" type="number" value="25"
+                class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">Hashtags (স্পেস দিয়ে লিখুন)</label>
+            <input id="tags-input" type="text" placeholder="#Movies #HD #Action"
+              class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">Thumbnail Image URL (Optional)</label>
+            <input id="thumb-input" type="url" placeholder="https://example.com/thumbnail.jpg"
+              class="w-full bg-[#0D0D11] text-white rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-gray-300 font-semibold mb-1">Description</label>
+            <textarea id="desc-input" rows="2" placeholder="ভিডিও সম্পর্কে সংক্ষিপ্ত বিবরণ..."
+              class="w-full bg-[#0D0D11] text-white rounded-xl p-2.5 border border-[#252533] focus:border-[#FF334B] focus:outline-none"></textarea>
+          </div>
+
+          <label class="flex items-center space-x-2 text-[11px] text-gray-300 cursor-pointer pt-1">
+            <input id="auto-push-toggle" type="checkbox" checked class="rounded accent-[#FF334B]" />
+            <span>Add বা Update করার সাথে সাথেই অটো GitHub-এ Push করুন</span>
+          </label>
+
+          <div class="flex items-center gap-2.5">
+            <button id="submit-btn" type="submit"
+              class="flex-1 py-2.5 rounded-full bg-gradient-to-r from-[#FF334B] to-[#FF5E3A] text-white font-bold shadow-lg shadow-[#FF334B]/25 active:scale-95 transition">
+              + Add Video
+            </button>
+            <button id="cancel-edit-btn" type="button" onclick="cancelEdit()"
+              class="hidden py-2.5 px-4 rounded-full bg-[#252533] hover:bg-[#323244] text-gray-200 font-bold active:scale-95 transition">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right: Generated JSON Output -->
+      <div class="bg-[#16161E] border border-[#252533] rounded-2xl p-5 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-white">Generated <code class="text-[#FF334B]">videos.json</code></h2>
+          <div class="flex items-center space-x-2">
+            <button onclick="importExistingJson()" type="button"
+              class="px-2.5 py-1 rounded-lg bg-[#252533] hover:bg-[#323244] text-[11px] font-semibold text-gray-200">
+              Paste Old JSON
+            </button>
+            <button onclick="clearAll()" type="button"
+              class="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900/60 text-[11px] font-semibold text-red-300">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <textarea id="json-output" readonly rows="15"
+          class="w-full flex-1 bg-[#0D0D11] text-emerald-400 font-mono text-[11px] rounded-xl p-3 border border-[#252533] focus:outline-none"></textarea>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4 text-xs">
+          <button onclick="pushToGitHub()" id="push-btn" type="button"
+            class="py-2.5 px-3 rounded-full bg-emerald-500 text-black font-bold hover:bg-emerald-400 active:scale-95 transition">
+            🚀 Push to GitHub
+          </button>
+          <button onclick="copyJson()" type="button"
+            class="py-2.5 px-3 rounded-full bg-white text-black font-bold hover:bg-gray-200 active:scale-95 transition">
+            📋 Copy JSON
+          </button>
+          <button onclick="downloadJson()" type="button"
+            class="py-2.5 px-3 rounded-full bg-[#252533] text-white font-bold hover:bg-[#323244] active:scale-95 transition">
+            ⬇️ Download
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Video List / Edit Section -->
+    <div class="bg-[#16161E] border border-[#252533] rounded-2xl p-5 mt-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 class="text-sm font-bold text-white">Saved / Old Videos List (Edit & Update)</h2>
+          <p class="text-[11px] text-gray-400">যেকোনো ভিডিওর পাশে Edit চাপলে ফর্মে লোড হবে, পরিবর্তন করে Update করতে পারবেন।</p>
+        </div>
+        <input id="search-input" type="text" oninput="renderVideoList()" placeholder="Title বা Category দিয়ে খুঁজুন..."
+          class="w-full sm:w-64 bg-[#0D0D11] text-white text-xs rounded-xl px-3 py-2 border border-[#252533] focus:border-[#FF334B] focus:outline-none" />
+      </div>
+
+      <div id="video-list-container" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+        <p class="text-xs text-gray-500 text-center py-6">কোনো ভিডিও নেই। নতুন ভিডিও Add করুন অথবা পুরনো JSON পেস্ট / Pull করুন।</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 hidden bg-[#1F202B] text-white text-xs font-semibold px-4 py-2.5 rounded-full border border-[#FF334B] shadow-xl z-50">
+    Copied!
+  </div>
+
+  <script>
+    const DEFAULT_THUMB = "https://lh3.googleusercontent.com/aida-public/AB6AXuCYU1tgUo1HVlvVKqbjPyvMdEu1QeD-0DJgdlc_NZizO1MMTT4Au1CbMtcXze7xApFcL3m9n1NnHv1svw-LtrEfXD1RNN9gZO6gwlAkYL9A_byetE3dg6nLfwDdxug6S8ZL0gTFh8XUE3l1phEQNTJ3HMvh33wfsKnlOKBiUK-VRA8ZZKbG8UQKhggHEEWEGjUDuldumQAHrftHBlmsLNzSPKOvdKoaU7YOKPR0QWGNzGXb4i0yUsUR";
+    const STORAGE_KEY = "videoshare_gh_config_v3";
+
+    const DEFAULT_GH_CONFIG = {
+      owner: "See-some-hot-thing",
+      repo: "-xxx---",
+      path: "videos.json",
+      token: "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"
+    };
+
+    let videoList = [];
+    let currentFileSha = null;
+    let editingIndex = null;
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function getGhConfig() {
+      return {
+        owner: document.getElementById("gh-owner").value.trim(),
+        repo: document.getElementById("gh-repo").value.trim(),
+        path: (document.getElementById("gh-path").value.trim() || "videos.json").replace(/^\/+/, ""),
+        token: document.getElementById("gh-token").value.trim()
+      };
+    }
+
+    function saveGhConfig() {
+      const cfg = getGhConfig();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+      showToast("GitHub settings saved locally!");
+      setGhStatus("Settings saved in browser storage.", "text-emerald-400");
+    }
+
+    function loadGhConfig() {
+      let cfg = DEFAULT_GH_CONFIG;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          cfg = { ...DEFAULT_GH_CONFIG, ...saved };
+        }
+      } catch (_) {}
+
+      document.getElementById("gh-owner").value = cfg.owner || "";
+      document.getElementById("gh-repo").value = cfg.repo || "";
+      document.getElementById("gh-path").value = cfg.path || "videos.json";
+      document.getElementById("gh-token").value = cfg.token || "";
+    }
+
+    function setGhStatus(text, colorClass = "text-gray-400") {
+      const el = document.getElementById("gh-status");
+      el.textContent = text;
+      el.className = colorClass;
+    }
+
+    function toBase64Utf8(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = "";
+      for (let i = 0; i < bytes.length; i++) {
+        bin += String.fromCharCode(bytes[i]);
+      }
+      return btoa(bin);
+    }
+
+    function fromBase64Utf8(b64) {
+      const bin = atob(b64.replace(/\n/g, ""));
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) {
+        bytes[i] = bin.charCodeAt(i);
+      }
+      return new TextDecoder().decode(bytes);
+    }
+
+    async function fetchFileMeta({ owner, repo, path, token }) {
+      const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path}`;
+      const res = await fetch(url, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/vnd.github+json"
+        }
+      });
+
+      if (res.status === 404) {
+        return { exists: false, sha: null, content: null };
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || `GitHub GET failed (${res.status})`);
+      }
+      return {
+        exists: true,
+        sha: data.sha,
+        content: data.content ? fromBase64Utf8(data.content) : "[]"
+      };
+    }
+
+    async function pullFromGitHub(silent = false) {
+      const cfg = getGhConfig();
+      if (!cfg.owner || !cfg.repo || !cfg.token) {
+        if (!silent) showToast("Owner, Repo এবং Token দিন!");
+        return;
+      }
+
+      try {
+        setGhStatus("Pulling videos.json from GitHub...", "text-amber-300");
+        const meta = await fetchFileMeta(cfg);
+        if (!meta.exists) {
+          currentFileSha = null;
+          setGhStatus("ফাইলটি এখনো Repo-তে নেই। Push করলে নতুন ফাইল তৈরি হবে।", "text-amber-300");
+          if (!silent) showToast("File not found yet — will create on push");
+          return;
+        }
+
+        currentFileSha = meta.sha;
+        const parsed = JSON.parse(meta.content);
+        if (!Array.isArray(parsed)) throw new Error("Remote JSON is not an array");
+
+        editingIndex = null;
+        resetFormToAddMode();
+        videoList = parsed;
+        updateJsonBox();
+        renderVideoList();
+        setGhStatus(`Loaded ${videoList.length} videos from ${cfg.path} (SHA ready).`, "text-emerald-400");
+        if (!silent) showToast("Pulled from GitHub!");
+      } catch (err) {
+        setGhStatus("Pull error: " + err.message, "text-[#FF334B]");
+        if (!silent) showToast("Failed to pull from GitHub");
+      }
+    }
+
+    async function pushToGitHub(customCommitMsg = null) {
+      const cfg = getGhConfig();
+      if (!cfg.owner || !cfg.repo || !cfg.token) {
+        showToast("আগে GitHub Owner, Repo ও Token দিন!");
+        return false;
+      }
+
+      const pushBtn = document.getElementById("push-btn");
+      pushBtn.disabled = true;
+      pushBtn.textContent = "⏳ Pushing...";
+
+      try {
+        setGhStatus("Checking latest file state on GitHub...", "text-amber-300");
+        const latestMeta = await fetchFileMeta(cfg);
+        const shaToUse = latestMeta.exists ? latestMeta.sha : currentFileSha;
+
+        const formattedJson = JSON.stringify(videoList, null, 2) + "\n";
+        const putUrl = `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${cfg.path}`;
+
+        const body = {
+          message: customCommitMsg || `Update ${cfg.path} (${videoList.length} videos)`,
+          content: toBase64Utf8(formattedJson)
+        };
+        if (shaToUse) body.sha = shaToUse;
+
+        const res = await fetch(putUrl, {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${cfg.token}`,
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || `GitHub PUT failed (${res.status})`);
+        }
+
+        currentFileSha = data.content?.sha || null;
+        setGhStatus(`Pushed to ${cfg.owner}/${cfg.repo}/${cfg.path} at ${new Date().toLocaleTimeString()}`, "text-emerald-400");
+        showToast("Updated videos.json on GitHub!");
+        return true;
+      } catch (err) {
+        setGhStatus("Push failed: " + err.message, "text-[#FF334B]");
+        showToast("GitHub Push Failed!");
+        return false;
+      } finally {
+        pushBtn.disabled = false;
+        pushBtn.textContent = "🚀 Push to GitHub";
+      }
+    }
+
+    function extractEmbedUrl(input) {
+      const trimmed = input.trim();
+      const srcMatch = trimmed.match(/src=["']([^"']+)["']/i);
+      if (srcMatch && srcMatch[1]) return srcMatch[1];
+
+      const ytWatch = trimmed.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (ytWatch && ytWatch[1]) return `https://www.youtube.com/embed/${ytWatch[1]}`;
+
+      if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+      return null;
+    }
+
+    function validateEmbed(val) {
+      const msg = document.getElementById("embed-msg");
+      const url = extractEmbedUrl(val);
+      if (!val.trim()) {
+        msg.textContent = "যেকোনো iframe কোড বা YouTube/Embed লিংক পেস্ট করুন।";
+        msg.className = "text-[11px] text-gray-400 mt-1";
+      } else if (url) {
+        msg.textContent = "✓ Extracted URL: " + url;
+        msg.className = "text-[11px] text-emerald-400 mt-1 truncate";
+      } else {
+        msg.textContent = "✕ সঠিক iframe কোড বা https:// লিংক দিন।";
+        msg.className = "text-[11px] text-[#FF334B] mt-1";
+      }
+    }
+
+    function updateJsonBox() {
+      document.getElementById("json-output").value = JSON.stringify(videoList, null, 2);
+      document.getElementById("total-badge").textContent = `${videoList.length} Video${videoList.length === 1 ? "" : "s"}`;
+    }
+
+    function ensureCategoryOption(category) {
+      const select = document.getElementById("category-input");
+      const exists = Array.from(select.options).some(opt => opt.value === category);
+      if (!exists && category) {
+        const opt = document.createElement("option");
+        opt.value = category;
+        opt.textContent = category;
+        select.appendChild(opt);
+      }
+      select.value = category || "Animation";
+    }
+
+    function startEditVideo(index) {
+      const item = videoList[index];
+      if (!item) return;
+
+      editingIndex = index;
+      document.getElementById("embed-input").value = item.embedUrl || "";
+      validateEmbed(item.embedUrl || "");
+      document.getElementById("title-input").value = item.title || "";
+      document.getElementById("creator-input").value = item.creator || "My Channel";
+      ensureCategoryOption(item.category || "Animation");
+      document.getElementById("duration-input").value = item.duration || "HD";
+      document.getElementById("views-input").value = item.views || "100";
+      document.getElementById("likes-input").value = item.likes ?? 0;
+      document.getElementById("tags-input").value = Array.isArray(item.hashtags) ? item.hashtags.join(" ") : "";
+      document.getElementById("thumb-input").value = item.thumbnail && item.thumbnail !== DEFAULT_THUMB ? item.thumbnail : "";
+      document.getElementById("desc-input").value = item.description || "";
+
+      document.getElementById("form-heading").textContent = `ভিডিও এডিট করুন (#${index + 1})`;
+      document.getElementById("edit-badge").classList.remove("hidden");
+      document.getElementById("submit-btn").textContent = "💾 Update Video";
+      document.getElementById("cancel-edit-btn").classList.remove("hidden");
+      document.getElementById("form-card").classList.add("border-amber-500/60");
+
+      renderVideoList();
+      document.getElementById("form-card").scrollIntoView({ behavior: "smooth", block: "start" });
+      showToast(`Editing: ${item.title || "Video"}`);
+    }
+
+    function resetFormToAddMode() {
+      editingIndex = null;
+      document.getElementById("embed-input").value = "";
+      document.getElementById("title-input").value = "";
+      document.getElementById("thumb-input").value = "";
+      document.getElementById("desc-input").value = "";
+      document.getElementById("tags-input").value = "";
+      validateEmbed("");
+
+      document.getElementById("form-heading").textContent = "নতুন ভিডিওর তথ্য দিন";
+      document.getElementById("edit-badge").classList.add("hidden");
+      document.getElementById("submit-btn").textContent = "+ Add Video";
+      document.getElementById("cancel-edit-btn").classList.add("hidden");
+      document.getElementById("form-card").classList.remove("border-amber-500/60");
+    }
+
+    function cancelEdit() {
+      resetFormToAddMode();
+      renderVideoList();
+      showToast("Edit cancelled");
+    }
+
+    async function deleteVideo(index) {
+      const item = videoList[index];
+      if (!item) return;
+      if (!confirm(`"${item.title || "এই ভিডিও"}" তালিকা থেকে ডিলিট করবেন?`)) return;
+
+      videoList.splice(index, 1);
+      if (editingIndex === index) {
+        resetFormToAddMode();
+      } else if (editingIndex !== null && index < editingIndex) {
+        editingIndex--;
+      }
+
+      updateJsonBox();
+      renderVideoList();
+
+      const autoPush = document.getElementById("auto-push-toggle").checked;
+      const cfg = getGhConfig();
+      if (autoPush && cfg.owner && cfg.repo && cfg.token) {
+        await pushToGitHub(`Delete video: ${item.title || index + 1}`);
+      } else {
+        showToast("Deleted from list!");
+      }
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const rawEmbed = document.getElementById("embed-input").value;
+      const cleanUrl = extractEmbedUrl(rawEmbed);
+
+      if (!cleanUrl) {
+        showToast("Invalid embed code or URL!");
+        return;
+      }
+
+      const title = document.getElementById("title-input").value.trim();
+      const creator = document.getElementById("creator-input").value.trim() || "My Channel";
+      const category = document.getElementById("category-input").value;
+      const duration = document.getElementById("duration-input").value.trim() || "HD";
+      const views = document.getElementById("views-input").value.trim() || "100";
+      const likes = Number(document.getElementById("likes-input").value) || 0;
+      const rawTags = document.getElementById("tags-input").value.trim();
+      const rawThumb = document.getElementById("thumb-input").value.trim();
+      const description = document.getElementById("desc-input").value.trim() || "Watch on VideoShare.";
+
+      const hashtags = rawTags
+        ? rawTags.split(/\s+/).map(t => (t.startsWith("#") ? t : `#${t}`))
+        : [`#${category}`, "#HD"];
+
+      const today = new Date().toISOString().split("T")[0];
+      const isEditing = editingIndex !== null && videoList[editingIndex];
+      const existingItem = isEditing ? videoList[editingIndex] : null;
+
+      const entryData = {
+        id: existingItem?.id || ("vid-" + Date.now()),
+        title,
+        embedUrl: cleanUrl,
+        creator,
+        subs: existingItem?.subs || "Creator",
+        category,
+        hashtags,
+        views,
+        date: existingItem?.date || today,
+        duration,
+        likes,
+        dislikes: existingItem?.dislikes ?? 0,
+        thumbnail: rawThumb || (existingItem?.thumbnail && existingItem.thumbnail !== DEFAULT_THUMB ? existingItem.thumbnail : DEFAULT_THUMB),
+        description
+      };
+
+      if (isEditing) {
+        videoList[editingIndex] = entryData;
+        resetFormToAddMode();
+      } else {
+        videoList.unshift(entryData);
+        resetFormToAddMode();
+      }
+
+      updateJsonBox();
+      renderVideoList();
+
+      const autoPush = document.getElementById("auto-push-toggle").checked;
+      const cfg = getGhConfig();
+
+      if (autoPush && cfg.owner && cfg.repo && cfg.token) {
+        await pushToGitHub(isEditing ? `Update video: ${title}` : `Add video: ${title}`);
+      } else {
+        showToast(isEditing ? "Updated in JSON! Push manually when ready." : "Added to JSON! Push manually when ready.");
+      }
+    }
+
+    function renderVideoList() {
+      const container = document.getElementById("video-list-container");
+      const query = (document.getElementById("search-input")?.value || "").trim().toLowerCase();
+
+      if (!videoList.length) {
+        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">কোনো ভিডিও নেই। নতুন ভিডিও Add করুন অথবা পুরনো JSON পেস্ট / Pull করুন।</p>`;
+        return;
+      }
+
+      const filtered = videoList
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => {
+          if (!query) return true;
+          return (
+            String(item.title || "").toLowerCase().includes(query) ||
+            String(item.category || "").toLowerCase().includes(query) ||
+            String(item.creator || "").toLowerCase().includes(query)
+          );
+        });
+
+      if (!filtered.length) {
+        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-6">কোনো মিলে যাওয়া ভিডিও পাওয়া যায়নি।</p>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(({ item, index }) => {
+        const isCurrentEdit = editingIndex === index;
+        return `
+          <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 bg-[#0D0D11] border ${isCurrentEdit ? "border-amber-500/70" : "border-[#252533]"} rounded-xl p-3">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-mono text-gray-500">#${index + 1}</span>
+                <p class="text-xs font-bold text-white truncate">${escapeHtml(item.title || "Untitled")}</p>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#252533] text-gray-300">${escapeHtml(item.category || "General")}</span>
+                ${isCurrentEdit ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">Editing</span>` : ""}
+              </div>
+              <p class="text-[11px] text-gray-400 truncate mt-1">${escapeHtml(item.embedUrl || "")}</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" onclick="startEditVideo(${index})"
+                class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-semibold transition">
+                ✏️ Edit
+              </button>
+              <button type="button" onclick="deleteVideo(${index})"
+                class="px-3 py-1.5 rounded-lg bg-red-950/70 hover:bg-red-900/70 text-red-300 text-[11px] font-semibold transition">
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function importExistingJson() {
+      const oldText = prompt("আপনার আগের videos.json ফাইলের কোড এখানে পেস্ট করুন:");
+      if (!oldText) return;
+      try {
+        const parsed = JSON.parse(oldText);
+        if (!Array.isArray(parsed)) throw new Error("Not an array");
+        videoList = [...videoList, ...parsed];
+        updateJsonBox();
+        renderVideoList();
+        showToast("Previous videos loaded!");
+      } catch (err) {
+        showToast("Invalid JSON format!");
+      }
+    }
+
+    function copyJson() {
+      const box = document.getElementById("json-output");
+      box.select();
+      navigator.clipboard.writeText(box.value);
+      showToast("JSON copied to clipboard!");
+    }
+
+    function downloadJson() {
+      const content = document.getElementById("json-output").value;
+      const blob = new Blob([content], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "videos.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearAll() {
+      if (confirm("সব লিস্ট ক্লিয়ার করবেন?")) {
+        videoList = [];
+        resetFormToAddMode();
+        updateJsonBox();
+        renderVideoList();
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.classList.remove("hidden");
+      clearTimeout(window._t);
+      window._t = setTimeout(() => toast.classList.add("hidden"), 2400);
+    }
+
+    loadGhConfig();
+    updateJsonBox();
+    renderVideoList();
+    pullFromGitHub(true);
+  </script>
+</body>
+</html>
