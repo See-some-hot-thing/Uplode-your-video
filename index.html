@@ -259,9 +259,36 @@
       token: "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"
     };
 
-    let videoList = [];
+    const INITIAL_VIDEOS = [
+      {
+        id: 1,
+        title: "Google it to be uiijjh",
+        embedUrl: "https://player.abyssplayer.com/DF64Lxs0E",
+        creator: "My Channel",
+        subs: "Creator",
+        category: "Animation",
+        hashtags: ["#Animation", "#HD"],
+        views: "1.2K",
+        date: "2026-11-21",
+        duration: "HD",
+        likes: 25,
+        dislikes: 0,
+        thumbnail: DEFAULT_THUMB,
+        description: "6fuhhhhhuuu"
+      }
+    ];
+
+    let videoList = [...INITIAL_VIDEOS];
     let currentFileSha = null;
     let editingIndex = null;
+
+    function getNextNumericId() {
+      const maxId = videoList.reduce((max, item) => {
+        const num = Number(item?.id);
+        return Number.isInteger(num) && num > max ? num : max;
+      }, 0);
+      return maxId + 1;
+    }
 
     function escapeHtml(str) {
       return String(str ?? "")
@@ -586,7 +613,7 @@
       const existingItem = isEditing ? videoList[editingIndex] : null;
 
       const entryData = {
-        id: existingItem?.id || ("vid-" + Date.now()),
+        id: existingItem ? existingItem.id : getNextNumericId(),
         title,
         embedUrl: cleanUrl,
         creator,
@@ -606,7 +633,7 @@
         videoList[editingIndex] = entryData;
         resetFormToAddMode();
       } else {
-        videoList.unshift(entryData);
+        videoList.push(entryData);
         resetFormToAddMode();
       }
 
@@ -654,7 +681,7 @@
           <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 bg-[#0D0D11] border ${isCurrentEdit ? "border-amber-500/70" : "border-[#252533]"} rounded-xl p-3">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-[10px] font-mono text-gray-500">#${index + 1}</span>
+                <span class="text-[10px] font-mono text-gray-500">ID: ${escapeHtml(item.id ?? (index + 1))}</span>
                 <p class="text-xs font-bold text-white truncate">${escapeHtml(item.title || "Untitled")}</p>
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#252533] text-gray-300">${escapeHtml(item.category || "General")}</span>
                 ${isCurrentEdit ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">Editing</span>` : ""}
